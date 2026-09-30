@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SastGym RailsGoat pilot ground truth v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "created_at",
+        "coverage",
+        "source",
+        "environment",
+        "evidence_policy",
+        "evaluation",
+        "upstream_test_caveat",
+        "exclusions"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "coverage": {
+          "const": "partial-positive-only"
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "upstream_url",
+            "intended_fork_url",
+            "commit",
+            "tree",
+            "branch_at_review",
+            "license"
+          ],
+          "properties": {
+            "upstream_url": {
+              "const": "https://github.com/OWASP/railsgoat"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "tree": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "branch_at_review": {
+              "type": "string",
+              "minLength": 1
+            },
+            "license": {
+              "const": "MIT"
+            },
+            "intended_fork_url": {
+              "const": "https://github.com/SastGym/railsgoat"
+            }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ruby",
+            "rails",
+            "database",
+            "lockfile_sha256",
+            "runtime_reproduced"
+          ],
+          "properties": {
+            "ruby": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rails": {
+              "type": "string",
+              "minLength": 1
+            },
+            "database": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lockfile_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "runtime_reproduced": {
+              "type": "boolean"
+            }
+          }
+        },
+        "evidence_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "documented",
+            "source-reviewed",
+            "reproduced"
+          ],
+          "properties": {
+            "documented": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source-reviewed": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reproduced": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "evaluation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "blind_ready",
+            "negative_ground_truth",
+            "unmatched_findings",
+            "deduplication",
+            "authoring_paths",
+            "withhold_from_scanner",
+            "known_leakage"
+          ],
+          "properties": {
+            "blind_ready": {
+              "const": false
+            },
+            "negative_ground_truth": {
+              "const": false
+            },
+            "unmatched_findings": {
+              "const": "needs-adjudication"
+            },
+            "deduplication": {
+              "type": "string",
+              "minLength": 1
+            },
+            "authoring_paths": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "withhold_from_scanner": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "known_leakage": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "upstream_test_caveat": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exclusions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "cwe",
+          "kind",
+          "label",
+          "root_cause",
+          "entry_point",
+          "preconditions",
+          "security_invariant",
+          "flow",
+          "primary_location",
+          "related_locations",
+          "evidence",
+          "limitations"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^RAILSGOAT-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cwe": {
+            "type": "string",
+            "pattern": "^CWE-[1-9][0-9]*$"
+          },
+          "kind": {
+            "const": "source-weakness"
+          },
+          "label": {
+            "const": "vulnerable"
+          },
+          "root_cause": {
+            "type": "string",
+            "minLength": 1
+          },
+          "entry_point": {
+            "type": "string",
+            "minLength": 1
+          },
+          "preconditions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "security_invariant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "flow": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "primary_location": {
+            "$ref": "#/$defs/location"
+          },
+          "related_locations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/$defs/location"
+            }
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "level",
+              "review_date",
+              "upstream_spec",
+              "upstream_spec_assessment",
+              "runtime"
+            ],
+            "properties": {
+              "level": {
+                "enum": [
+                  "documented",
+                  "source-reviewed",
+                  "reproduced"
+                ]
+              },
+              "review_date": {
+                "type": "string",
+                "format": "date"
+              },
+              "upstream_spec": {
+                "$ref": "#/$defs/location"
+              },
+              "upstream_spec_assessment": {
+                "type": "string",
+                "minLength": 1
+              },
+              "runtime": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "status",
+                  "reason",
+                  "expected_vulnerable_observation"
+                ],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "not-run",
+                      "passed",
+                      "failed",
+                      "blocked"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expected_vulnerable_observation": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "start_line",
+        "end_line",
+        "symbol",
+        "role",
+        "excerpt_sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "root-cause",
+            "source",
+            "sink",
+            "context",
+            "route",
+            "upstream-spec"
+          ]
+        },
+        "excerpt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

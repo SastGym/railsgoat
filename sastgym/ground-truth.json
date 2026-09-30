@@ -1,0 +1,556 @@
+{
+  "schema_version": "1.0.0",
+  "manifest": {
+    "dataset_id": "sastgym-railsgoat-pilot-v1",
+    "created_at": "2026-09-30",
+    "coverage": "partial-positive-only",
+    "source": {
+      "upstream_url": "https://github.com/OWASP/railsgoat",
+      "commit": "f5951f13089d85c979de09e7da3c8c0fb982f94a",
+      "tree": "d2f636cf5c9ed55523b9f981ef1e8606c88febd5",
+      "branch_at_review": "main",
+      "license": "MIT",
+      "intended_fork_url": "https://github.com/SastGym/railsgoat"
+    },
+    "environment": {
+      "ruby": "3.4.1",
+      "rails": "8.0.4",
+      "database": "SQLite (upstream test configuration)",
+      "lockfile_sha256": "59624ee9e09ab22ff390e686c9d708522aaf2712c62ef7ca4be8ef12c90ce40c",
+      "runtime_reproduced": false
+    },
+    "evidence_policy": {
+      "documented": "Upstream material names or exercises the weakness; not itself verification.",
+      "source-reviewed": "Entry point, controls, data flow and root cause inspected at the exact source pin; runtime not implied.",
+      "reproduced": "An isolated request/exploit oracle was executed successfully against this exact pin with environment and result recorded."
+    },
+    "evaluation": {
+      "blind_ready": false,
+      "negative_ground_truth": false,
+      "unmatched_findings": "needs-adjudication",
+      "deduplication": "One record per root cause. Match the mechanism and primary region or a decisive related control (for example admin_param at admin_controller.rb:76 for RAILSGOAT-003). CWE or nearby line alone is insufficient. Related locations are evidence, not independent positives; ambiguous matches need manual adjudication.",
+      "authoring_paths": [
+        "sastgym/",
+        ".github/workflows/sastgym-ground-truth.yml"
+      ],
+      "withhold_from_scanner": [
+        "sastgym/",
+        "spec/",
+        "docs/",
+        "README.md",
+        "CONTRIBUTING.md"
+      ],
+      "known_leakage": [
+        "Upstream application source and templates contain answer-bearing vulnerability comments and tutorial code.",
+        "The withhold list alone is not a blinded export. A reviewed transformation with a reversible line map is required before calling an evaluation blind.",
+        "Public training repositories can appear in model training data even after annotation stripping."
+      ]
+    },
+    "upstream_test_caveat": "RAILSGOAT_MAINTAINER makes verifying_fixed? return false (spec/support/capybara_shared.rb:11-35); vulnerability before hooks skip. Green upstream maintainer CI cannot establish exploit reproduction.",
+    "exclusions": [
+      "No claim of exhaustive vulnerability coverage or safe/unvulnerable regions.",
+      "Dependencies/SCA, deployment configuration and tutorial-only exercises are not part of this pilot.",
+      "No repaired snapshots, verified negatives or blinded scanner export are included."
+    ]
+  },
+  "findings": [
+    {
+      "id": "RAILSGOAT-001",
+      "title": "Employee information lookup is not scoped to the signed-in user",
+      "cwe": "CWE-639",
+      "kind": "source-weakness",
+      "label": "vulnerable",
+      "root_cause": "WorkInfoController#index selects the requested user globally and rejects only missing/admin targets; it never requires the target to equal current_user.",
+      "entry_point": "GET /users/:user_id/work_info",
+      "preconditions": [
+        "Authenticated ordinary user who passes ApplicationController#has_info",
+        "Another non-admin user exists with a work_info record",
+        "Attacker can choose the nested user_id route parameter"
+      ],
+      "security_invariant": "An ordinary employee may read only their own employee information.",
+      "flow": [
+        "The nested route supplies params[:user_id].",
+        "User.find_by loads that identity independently of current_user.",
+        "The view renders the selected user's income, bonus, SSN and date of birth."
+      ],
+      "primary_location": {
+        "path": "app/controllers/work_info_controller.rb",
+        "start_line": 3,
+        "end_line": 8,
+        "symbol": "WorkInfoController#index",
+        "role": "root-cause",
+        "excerpt_sha256": "e7f471953de206b19ab73405d275c0d4f167310248d3dfeb453bae7b74a6582a"
+      },
+      "related_locations": [
+        {
+          "path": "config/routes.rb",
+          "start_line": 17,
+          "end_line": 22,
+          "symbol": "Railsgoat::Application.routes",
+          "role": "route",
+          "excerpt_sha256": "f91dc4f2c8bd51147fca733afca05db8932f267a3b84f76e62217a71ef0bdbdf"
+        },
+        {
+          "path": "app/controllers/application_controller.rb",
+          "start_line": 18,
+          "end_line": 38,
+          "symbol": "ApplicationController#current_user/#authenticated/#administrative",
+          "role": "context",
+          "excerpt_sha256": "6601d706041875392c7a69c405a59ff7958b54a5f6f00620ec2d68d3b48fa0c6"
+        },
+        {
+          "path": "app/views/work_info/index.html.erb",
+          "start_line": 25,
+          "end_line": 34,
+          "symbol": "work_info/index template",
+          "role": "sink",
+          "excerpt_sha256": "3f62ee7489e368de75953d5a5ad2b2e29cf4d87531050a379d7ba304e629419f"
+        }
+      ],
+      "evidence": {
+        "level": "source-reviewed",
+        "review_date": "2026-09-30",
+        "upstream_spec": {
+          "path": "spec/vulnerabilities/insecure_dor_spec.rb",
+          "start_line": 24,
+          "end_line": 32,
+          "symbol": "scenario attack two",
+          "role": "upstream-spec",
+          "excerpt_sha256": "d654c5314e969d36f4ad6511a97362907c4d4c0b91b272047763be09c965499e"
+        },
+        "upstream_spec_assessment": "Training-mode assertion expects another user's information NOT to be visible. The before hook at lines 8\u201310 skips the scenario when RAILSGOAT_MAINTAINER is set. Not executed here.",
+        "runtime": {
+          "status": "not-run",
+          "reason": "Ruby, Bundler and Docker are not installed in the annotation workspace; no Rails request or exploit was executed.",
+          "expected_vulnerable_observation": "With distinct ordinary users A and B, a request authenticated as A for B's work_info returns B's record rather than denying access."
+        }
+      },
+      "limitations": [
+        "Admin targets are explicitly rejected; this record covers other non-admin employees.",
+        "JavaScript masks SSN in the DOM after delivery; masking does not authorize or remove sensitive data from the response."
+      ]
+    },
+    {
+      "id": "RAILSGOAT-002",
+      "title": "Signup accepts the privileged admin attribute",
+      "cwe": "CWE-915",
+      "kind": "source-weakness",
+      "label": "vulnerable",
+      "root_cause": "UsersController#user_params marks every submitted user attribute permitted, and #create passes the result to User.new, including the persisted admin flag.",
+      "entry_point": "POST /users",
+      "preconditions": [
+        "Signup is enabled and unauthenticated create is reachable",
+        "Provide a new valid email and a password with matching confirmation satisfying model validation",
+        "Include user[admin]=true in the request"
+      ],
+      "security_invariant": "Public signup must not allow the registrant to choose an administrative role.",
+      "flow": [
+        "The create action is excluded from the authenticated filter.",
+        "params.require(:user).permit! accepts the attacker-supplied admin field.",
+        "User.new and save persist admin on the new account and establish its session."
+      ],
+      "primary_location": {
+        "path": "app/controllers/users_controller.rb",
+        "start_line": 49,
+        "end_line": 51,
+        "symbol": "UsersController#user_params",
+        "role": "root-cause",
+        "excerpt_sha256": "b6629a6f75e2f36727aa39a405815b9b2aafd7909e7410b0d7c8fa4772b2bce3"
+      },
+      "related_locations": [
+        {
+          "path": "config/routes.rb",
+          "start_line": 17,
+          "end_line": 17,
+          "symbol": "Railsgoat::Application.routes",
+          "role": "route",
+          "excerpt_sha256": "1f47ded2f8f466992c246f076059afa8a679caa2b225950efd51c7bf3e7a2d95"
+        },
+        {
+          "path": "app/controllers/users_controller.rb",
+          "start_line": 3,
+          "end_line": 14,
+          "symbol": "UsersController#create and callbacks",
+          "role": "sink",
+          "excerpt_sha256": "9bce100d3c32b699a9fe62f011bb6f6114d62e1f2c86f78bfb7b497e7b66d5f0"
+        },
+        {
+          "path": "app/models/user.rb",
+          "start_line": 4,
+          "end_line": 13,
+          "symbol": "User validations",
+          "role": "context",
+          "excerpt_sha256": "c9ea7beeda9537965d090b85da2c6f4cefd0416405dea7df2c878b9882091a30"
+        },
+        {
+          "path": "db/schema.rb",
+          "start_line": 92,
+          "end_line": 100,
+          "symbol": "users table",
+          "role": "context",
+          "excerpt_sha256": "e0a29fc69dcb1d9b83fb7504b5ef2ea6e02296397eea71e4423ee4ce1ad830ea"
+        }
+      ],
+      "evidence": {
+        "level": "source-reviewed",
+        "review_date": "2026-09-30",
+        "upstream_spec": {
+          "path": "spec/vulnerabilities/mass_assignment_spec.rb",
+          "start_line": 26,
+          "end_line": 36,
+          "symbol": "scenario attack two",
+          "role": "upstream-spec",
+          "excerpt_sha256": "1a2ba047882ed3f4137c3f3896ca0b3bda83a69d0639734dec9a4ce74b55f72f"
+        },
+        "upstream_spec_assessment": "The upstream scenario submits admin during signup and asserts the resulting account is NOT admin; it is a repair-oriented assertion, skipped in maintainer mode (lines 7\u20139). Not executed here.",
+        "runtime": {
+          "status": "not-run",
+          "reason": "Ruby, Bundler and Docker are not installed in the annotation workspace; no Rails request or exploit was executed.",
+          "expected_vulnerable_observation": "A valid signup containing admin=true creates an account whose reloaded admin attribute is true."
+        }
+      },
+      "limitations": [
+        "Separate self-service update permitting admin at users_controller.rb:55 is a different assignment boundary, intentionally not included in this label.",
+        "Do not count every writable field as a separate root cause."
+      ]
+    },
+    {
+      "id": "RAILSGOAT-003",
+      "title": "Route parameter disables the administrative authorization filter",
+      "cwe": "CWE-863",
+      "kind": "source-weakness",
+      "label": "vulnerable",
+      "root_cause": "AdminController applies its administrative callback only when admin_param is true; admin_param returns false for attacker-selected admin_id equal to the string 1.",
+      "entry_point": "GET /admin/1/get_all_users (also GET /admin/1/dashboard)",
+      "preconditions": [
+        "Authenticated non-admin user",
+        "The request supplies nested admin_id=1"
+      ],
+      "security_invariant": "Every administrative action must authorize the current authenticated user regardless of URL identifiers.",
+      "flow": [
+        "The admin resource exposes nested routes with admin_id.",
+        "The callback condition depends on that route parameter rather than the authenticated principal.",
+        "For admin_id=1, the administrative filter is skipped and get_all_users loads every user."
+      ],
+      "primary_location": {
+        "path": "app/controllers/admin_controller.rb",
+        "start_line": 3,
+        "end_line": 3,
+        "symbol": "AdminController callback registration",
+        "role": "root-cause",
+        "excerpt_sha256": "6aa6519e260fabb3ce2d7bfd504c05546e06b246126055945855228be265d174"
+      },
+      "related_locations": [
+        {
+          "path": "app/controllers/admin_controller.rb",
+          "start_line": 75,
+          "end_line": 77,
+          "symbol": "AdminController#admin_param",
+          "role": "context",
+          "excerpt_sha256": "749233a152b6e2415d5de1e92f3b64485446bad158ef73b8ce43426a54d0279e"
+        },
+        {
+          "path": "app/controllers/admin_controller.rb",
+          "start_line": 23,
+          "end_line": 25,
+          "symbol": "AdminController#get_all_users",
+          "role": "sink",
+          "excerpt_sha256": "64dc7d0ef1a822b1d68d909213a8eb48ed57785cb0f5b3ed05d578b545e24315"
+        },
+        {
+          "path": "config/routes.rb",
+          "start_line": 57,
+          "end_line": 64,
+          "symbol": "Railsgoat::Application.routes",
+          "role": "route",
+          "excerpt_sha256": "8c63d0b0e9d41013ee6264bd4179e1a3ff11315c3d8a8829f5f2ed3b08cbad01"
+        },
+        {
+          "path": "app/controllers/application_controller.rb",
+          "start_line": 18,
+          "end_line": 38,
+          "symbol": "ApplicationController#current_user/#authenticated/#administrative",
+          "role": "context",
+          "excerpt_sha256": "6601d706041875392c7a69c405a59ff7958b54a5f6f00620ec2d68d3b48fa0c6"
+        },
+        {
+          "path": "app/views/admin/get_all_users.html.erb",
+          "start_line": 28,
+          "end_line": 37,
+          "symbol": "admin/get_all_users template",
+          "role": "sink",
+          "excerpt_sha256": "30281b7413dd6967b0edbe34943e13c48b8efaf4297ccbb19f483e51f7c6860f"
+        }
+      ],
+      "evidence": {
+        "level": "source-reviewed",
+        "review_date": "2026-09-30",
+        "upstream_spec": {
+          "path": "spec/vulnerabilities/url_access_spec.rb",
+          "start_line": 13,
+          "end_line": 18,
+          "symbol": "scenario attack",
+          "role": "upstream-spec",
+          "excerpt_sha256": "b0820dd5705766b6b2bdc19aaa71fd33b8d5597a024b6a54014cf97f68ac614d"
+        },
+        "upstream_spec_assessment": "The upstream scenario requests /admin/1/dashboard and expects a redirect away. It documents the same callback bypass but does not assert the stronger get_all_users data exposure. The before hook skips it in maintainer mode. Not executed here.",
+        "runtime": {
+          "status": "not-run",
+          "reason": "Ruby, Bundler and Docker are not installed in the annotation workspace; no Rails request or exploit was executed.",
+          "expected_vulnerable_observation": "A non-admin request to /admin/1/get_all_users reaches the action and returns the full user list."
+        }
+      },
+      "limitations": [
+        "The explicitly excepted get_user action is a separate missing-check boundary and is not counted here.",
+        "The selected read-only entry point demonstrates the same callback root cause without deleting records."
+      ]
+    },
+    {
+      "id": "RAILSGOAT-004",
+      "title": "Account update interpolates the request identity into SQL",
+      "cwe": "CWE-89",
+      "kind": "source-weakness",
+      "label": "vulnerable",
+      "root_cause": "UsersController#update constructs the where condition by interpolating params[:user][:id] inside a quoted SQL string without binding or escaping it.",
+      "entry_point": "PUT or PATCH /users/:id with nested user[id]",
+      "preconditions": [
+        "Authenticated user",
+        "Request includes a user object and a syntactically valid database-specific SQL fragment in user[id]",
+        "Any update attributes satisfy relevant model validations"
+      ],
+      "security_invariant": "Request identity values must be treated as SQL data and must not alter predicate structure.",
+      "flow": [
+        "The action consumes nested user[id], not the route id, as query text.",
+        "String interpolation constructs the SQL predicate supplied to User.where.",
+        "The first matching row is subsequently updated with the supplied account attributes."
+      ],
+      "primary_location": {
+        "path": "app/controllers/users_controller.rb",
+        "start_line": 29,
+        "end_line": 29,
+        "symbol": "UsersController#update",
+        "role": "root-cause",
+        "excerpt_sha256": "1c53c1aa999a5a860d28465dc209e5bbe81e536414f241c61e91932b95540937"
+      },
+      "related_locations": [
+        {
+          "path": "config/routes.rb",
+          "start_line": 17,
+          "end_line": 17,
+          "symbol": "Railsgoat::Application.routes",
+          "role": "route",
+          "excerpt_sha256": "1f47ded2f8f466992c246f076059afa8a679caa2b225950efd51c7bf3e7a2d95"
+        },
+        {
+          "path": "app/controllers/application_controller.rb",
+          "start_line": 18,
+          "end_line": 38,
+          "symbol": "ApplicationController#current_user/#authenticated/#administrative",
+          "role": "context",
+          "excerpt_sha256": "6601d706041875392c7a69c405a59ff7958b54a5f6f00620ec2d68d3b48fa0c6"
+        },
+        {
+          "path": "app/controllers/users_controller.rb",
+          "start_line": 31,
+          "end_line": 36,
+          "symbol": "UsersController#update",
+          "role": "sink",
+          "excerpt_sha256": "fbd6860af0f47fe3b49e4ba146c4958bda5a66390246a29b04a8b206fcf063c3"
+        },
+        {
+          "path": "app/controllers/users_controller.rb",
+          "start_line": 54,
+          "end_line": 56,
+          "symbol": "UsersController#user_params_without_password",
+          "role": "context",
+          "excerpt_sha256": "f407c63584c12749c715feb528ccbc223e9e857c21b6f1a846fe14b76231066b"
+        }
+      ],
+      "evidence": {
+        "level": "source-reviewed",
+        "review_date": "2026-09-30",
+        "upstream_spec": {
+          "path": "spec/vulnerabilities/sql_injection_spec.rb",
+          "start_line": 13,
+          "end_line": 30,
+          "symbol": "scenario attack",
+          "role": "upstream-spec",
+          "excerpt_sha256": "8efe80f0f5c4982cc3523c1a5af677d7793a65a8736c1879e06cb31d3dae6681"
+        },
+        "upstream_spec_assessment": "The spec mutates a hidden identity field with SQL syntax and checks that an administrator email was NOT changed. It is skipped in maintainer mode. Its exact historical payload is adapter/query-shape dependent and has not been verified against this Rails 8 pin.",
+        "runtime": {
+          "status": "not-run",
+          "reason": "Ruby, Bundler and Docker are not installed in the annotation workspace; no Rails request or exploit was executed.",
+          "expected_vulnerable_observation": "A carefully chosen predicate-changing identity fragment changes the selected row(s); an explicit oracle must assert a chosen fixture's persistent state, not merely an HTTP error or any test failure."
+        }
+      },
+      "limitations": [
+        "The manifest selects the upstream SQLite test configuration; some other RailsGoat SQL demonstrations require MySQL. No claim is made that this spec's exact payload works on every adapter.",
+        "Missing ownership authorization at the same action is a distinct root cause. A report describing only unscoped selection should not be matched to this SQL injection label."
+      ]
+    },
+    {
+      "id": "RAILSGOAT-005",
+      "title": "Backup command embeds an uploaded filename in shell command text",
+      "cwe": "CWE-78",
+      "kind": "source-weakness",
+      "label": "vulnerable",
+      "root_cause": "Benefits.make_backup interpolates file.original_filename, directly and via full_file_name, into a single-string system call without shell escaping or argument separation.",
+      "entry_point": "POST /upload with benefits[upload] and benefits[backup]=true",
+      "preconditions": [
+        "Authenticated user who passes ApplicationController#has_info",
+        "Multipart filename retains shell metacharacters and ends in an allowed extension (.pdf, .doc, .docx, .jpg, .jpeg or .png)",
+        "Upload is no larger than 10 MiB and the target data directory is writable",
+        "benefits[backup] is the literal string true; saved file exists; shell/cp are available"
+      ],
+      "security_invariant": "Uploaded filenames must remain opaque data and must not become shell syntax.",
+      "flow": [
+        "upload obtains the uploaded file and validates only extension and size.",
+        "Benefits.save constructs a path from original_filename, writes the file and calls make_backup when backup == true as a string.",
+        "make_backup embeds the filename in a shell-interpreted system command."
+      ],
+      "primary_location": {
+        "path": "app/models/benefits.rb",
+        "start_line": 15,
+        "end_line": 15,
+        "symbol": "Benefits.make_backup",
+        "role": "root-cause",
+        "excerpt_sha256": "514314bd36596c2dae96b5d38bc726a46663e922e30f0e4fe81536940378c52d"
+      },
+      "related_locations": [
+        {
+          "path": "config/routes.rb",
+          "start_line": 38,
+          "end_line": 38,
+          "symbol": "Railsgoat::Application.routes",
+          "role": "route",
+          "excerpt_sha256": "664c4be453eb4083b7a9ffdb8a39cee12e93e907d98fbd17f2ca482328a43fee"
+        },
+        {
+          "path": "app/controllers/application_controller.rb",
+          "start_line": 18,
+          "end_line": 38,
+          "symbol": "ApplicationController#current_user/#authenticated/#administrative",
+          "role": "context",
+          "excerpt_sha256": "6601d706041875392c7a69c405a59ff7958b54a5f6f00620ec2d68d3b48fa0c6"
+        },
+        {
+          "path": "app/controllers/benefit_forms_controller.rb",
+          "start_line": 24,
+          "end_line": 25,
+          "symbol": "BenefitFormsController#upload",
+          "role": "source",
+          "excerpt_sha256": "20dd254fd3b0c29430d170ed9aa2260c837e614b024404d29dc412ce77455455"
+        },
+        {
+          "path": "app/controllers/benefit_forms_controller.rb",
+          "start_line": 35,
+          "end_line": 58,
+          "symbol": "BenefitFormsController#upload",
+          "role": "context",
+          "excerpt_sha256": "73b5deec84775168605265f3a12a2550aa32c4b7ca894ce2be133fbb2b782ad2"
+        },
+        {
+          "path": "app/models/benefits.rb",
+          "start_line": 4,
+          "end_line": 16,
+          "symbol": "Benefits.save / Benefits.make_backup",
+          "role": "context",
+          "excerpt_sha256": "d9c0880592ea93e418f398775e6eb2e7a862dbc5e1f4c79a9e9adb7203f6ae94"
+        }
+      ],
+      "evidence": {
+        "level": "source-reviewed",
+        "review_date": "2026-09-30",
+        "upstream_spec": {
+          "path": "spec/vulnerabilities/command_injection_spec.rb",
+          "start_line": 13,
+          "end_line": 30,
+          "symbol": "scenario attack",
+          "role": "upstream-spec",
+          "excerpt_sha256": "906ea95bb487a4a47b8709d904329b0620f64507221da8c550566c8d72e120a4"
+        },
+        "upstream_spec_assessment": "STALE ORACLE: the historical filename at line 21 has no allowed extension, so current upload validation rejects it before Benefits.save. Its .new_benefits form selector and Start Upload button selector are stale as well (the current form has explicit class needs-validation and the button is Upload File). Its destructive cleanup payload must not be reused. A green training assertion would not establish that the shell vulnerability is absent. It is also skipped in maintainer mode.",
+        "runtime": {
+          "status": "not-run",
+          "reason": "Ruby, Bundler and Docker are not installed in the annotation workspace; no Rails request or exploit was executed.",
+          "expected_vulnerable_observation": "In an isolated disposable runtime, an allowed-extension filename containing a harmless marker-producing shell fragment causes that marker to be created only when backup=true. Use a negative control with backup=false and do not run the upstream destructive payload."
+        }
+      },
+      "limitations": [
+        "No upload parsing, command execution or Rails runtime was exercised; this is source-reviewed evidence only.",
+        "An updated non-destructive behavioral oracle is still required, including confirmation that Rack preserves the selected filename characters.",
+        "Filename/path traversal during the write is a separate unannotated root cause."
+      ]
+    },
+    {
+      "id": "RAILSGOAT-006",
+      "title": "Download accepts an unconstrained filesystem path",
+      "cwe": "CWE-73",
+      "kind": "source-weakness",
+      "label": "vulnerable",
+      "root_cause": "BenefitFormsController#download constructs an object from request-controlled type and name and passes it to send_file without restricting the path to approved benefit files.",
+      "entry_point": "GET /download?type=File&name=<readable-path>",
+      "preconditions": [
+        "Authenticated user who passes ApplicationController#has_info",
+        "Choose type=File and an existing file readable by the application process",
+        "send_file accepts the resulting File object/path representation on the pinned Rails runtime"
+      ],
+      "security_invariant": "Benefit downloads must be restricted to authorized files in the intended download directory.",
+      "flow": [
+        "params[:name] supplies the path and params[:type] selects the class.",
+        "With type=File, File.new opens the requested path without a benefit-directory allowlist.",
+        "send_file attempts to return the opened file to the requester."
+      ],
+      "primary_location": {
+        "path": "app/controllers/benefit_forms_controller.rb",
+        "start_line": 11,
+        "end_line": 13,
+        "symbol": "BenefitFormsController#download",
+        "role": "root-cause",
+        "excerpt_sha256": "81f4e74350178f971a0ac39743ad6bfcf6c04f0283d953b5811fa8786e124dc8"
+      },
+      "related_locations": [
+        {
+          "path": "config/routes.rb",
+          "start_line": 36,
+          "end_line": 36,
+          "symbol": "Railsgoat::Application.routes",
+          "role": "route",
+          "excerpt_sha256": "e53ac1e476b000e478877ae1ed9654d0ebcefcde528f35c7d5d717f88626db05"
+        },
+        {
+          "path": "app/controllers/application_controller.rb",
+          "start_line": 18,
+          "end_line": 38,
+          "symbol": "ApplicationController#current_user/#authenticated/#administrative",
+          "role": "context",
+          "excerpt_sha256": "6601d706041875392c7a69c405a59ff7958b54a5f6f00620ec2d68d3b48fa0c6"
+        }
+      ],
+      "evidence": {
+        "level": "source-reviewed",
+        "review_date": "2026-09-30",
+        "upstream_spec": {
+          "path": "spec/vulnerabilities/insecure_dor_spec.rb",
+          "start_line": 13,
+          "end_line": 21,
+          "symbol": "scenario attack one",
+          "role": "upstream-spec",
+          "excerpt_sha256": "edec3489d76ad7fd25e7afc88cf98390a6aa17f3c61972ecc9411e0a5ed9b99e"
+        },
+        "upstream_spec_assessment": "The upstream scenario replaces the download name with config/database.yml and expects no successful download. Its first(\".widget-body a\") selector is stale: the current benefit page has no .widget-body element, so this UI scenario cannot reach the download. It is skipped in maintainer mode. Not executed here.",
+        "runtime": {
+          "status": "not-run",
+          "reason": "Ruby, Bundler and Docker are not installed in the annotation workspace; no Rails request or exploit was executed.",
+          "expected_vulnerable_observation": "An authenticated direct download request for a benign fixture outside the benefit directory returns the fixture bytes rather than rejecting the path."
+        }
+      },
+      "limitations": [
+        "CWE-73 describes externally controlled file paths without assuming a ../ traversal payload.",
+        "Ruby object coercion at send_file must be verified before promoting this label to reproduced; exceptions cause redirect in the rescue block.",
+        "Attacker-controlled constantize also warrants separate review; no arbitrary code execution claim is made from constantize alone."
+      ]
+    }
+  ]
+}
